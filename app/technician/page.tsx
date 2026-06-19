@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import Sidebar from '@/components/layout/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { toast } from 'sonner'
-import { Clock, Play, Square, Package } from 'lucide-react'
 import Link from 'next/link'
+import { Clock, Play, Square, Package, CheckCircle } from 'lucide-react'
 
 interface WorkOrder {
   id: string
@@ -68,7 +68,7 @@ export default function TechnicianDashboard() {
           customers (full_name),
           vehicles (license_plate, make, model, year)
         `)
-        .in('status', ['IN_PROGRESS', 'PARTS_READY'])
+        .in('status', ['IN_PROGRESS', 'PARTS_READY', 'REWORK_NEEDED'])
         .eq('assigned_to', user?.id)
         .order('created_at', { ascending: false })
 
@@ -95,7 +95,6 @@ export default function TechnicianDashboard() {
       ;(data as any)?.forEach((session: LaborSession) => {
         sessionsMap[session.work_order_id] = session
         
-        // Calculate elapsed time for active timers
         const startTime = new Date(session.start_time).getTime()
         const now = Date.now()
         const elapsedSeconds = Math.floor((now - startTime) / 1000)
@@ -166,6 +165,32 @@ export default function TechnicianDashboard() {
     }
   }
 
+  // NEW FUNCTION: Mark Job as Complete
+  const handleCompleteJob = async (woId: string) => {
+    // Optional: Auto-stop timer if it's still running
+    if (laborSessions[woId]) {
+      await handleStopTimer(woId)
+    }
+
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({ status: 'REPAIRS_COMPLETED' })
+        .eq('id', woId)
+
+      if (error) throw error
+
+      toast.success('Job Marked as Complete!', { 
+        description: 'Work order sent to Quality Assurance (QA).' 
+      })
+      
+      // Remove from local list so it disappears from the dashboard
+      setWorkOrders(prev => prev.filter(wo => wo.id !== woId))
+    } catch (error: any) {
+      toast.error('Failed to complete job', { description: error.message })
+    }
+  }
+
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
@@ -219,6 +244,7 @@ export default function TechnicianDashboard() {
                         </div>
                         <div className="text-right">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            wo.status === 'REWORK_NEEDED' ? 'bg-red-100 text-red-800' :
                             wo.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                           }`}>
                             {wo.status.replace(/_/g, ' ')}
@@ -232,7 +258,7 @@ export default function TechnicianDashboard() {
                         </p>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {!hasActiveTimer ? (
                           <Button 
                             onClick={() => handleStartTimer(wo.id)}
@@ -265,6 +291,15 @@ export default function TechnicianDashboard() {
                             Request Parts
                           </Button>
                         </Link>
+
+                        {/* NEW BUTTON: Mark as Complete */}
+                        <Button 
+                          onClick={() => handleCompleteJob(wo.id)}
+                          className="bg-slate-800 hover:bg-slate-900 ml-auto"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Mark as Complete
+                        </Button>
                       </div>
                     </div>
                   )
