@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import Sidebar from '@/components/layout/Sidebar'
+import { useAuth } from '@/lib/useAuth'
 
 interface Customer {
   id: string
@@ -20,6 +21,9 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  // 1. ALL HOOKS MUST BE AT THE VERY TOP
+  const { user, loading: authLoading } = useAuth() // Renamed to authLoading to prevent conflict
+  
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -34,13 +38,15 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<{[key: string]: string}>({})
 
+  // Fetch customers only when the user is successfully logged in
   useEffect(() => {
-    fetchCustomers()
-  }, [])
+    if (user) {
+      fetchCustomers()
+    }
+  }, [user])
 
   // VALIDATION FUNCTIONS
   const validatePhone = (phone: string): boolean => {
-    // Pakistan phone format: 03XX-XXXXXXX or 03XXXXXXXXX
     const phoneRegex = /^03[0-9]{9,10}$/
     const cleanPhone = phone.replace(/[-\s]/g, '')
     
@@ -48,12 +54,10 @@ export default function CustomersPage() {
       setErrors(prev => ({ ...prev, phone: 'Phone number is required' }))
       return false
     }
-    
     if (!phoneRegex.test(cleanPhone)) {
       setErrors(prev => ({ ...prev, phone: 'Invalid phone format. Use: 03001234567' }))
       return false
     }
-    
     setErrors(prev => ({ ...prev, phone: '' }))
     return true
   }
@@ -61,23 +65,17 @@ export default function CustomersPage() {
   const validateCNIC = (cnic: string): boolean => {
     if (!cnic) {
       setErrors(prev => ({ ...prev, cnic: '' }))
-      return true // CNIC is optional
+      return true
     }
-    
-    // Pakistan CNIC format: XXXXX-XXXXXXX-X
-    const cnicRegex = /^[0-9]{5}-[0-9]{7}-[0-9]$/
     const cleanCNIC = cnic.replace(/[-\s]/g, '')
-    
     if (cleanCNIC.length !== 13) {
       setErrors(prev => ({ ...prev, cnic: 'CNIC must be 13 digits' }))
       return false
     }
-    
     if (!/^[0-9]+$/.test(cleanCNIC)) {
       setErrors(prev => ({ ...prev, cnic: 'CNIC can only contain numbers' }))
       return false
     }
-    
     setErrors(prev => ({ ...prev, cnic: '' }))
     return true
   }
@@ -85,46 +83,28 @@ export default function CustomersPage() {
   const validateEmail = (email: string): boolean => {
     if (!email) {
       setErrors(prev => ({ ...prev, email: '' }))
-      return true // Email is optional
+      return true
     }
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    
     if (!emailRegex.test(email)) {
       setErrors(prev => ({ ...prev, email: 'Invalid email format' }))
       return false
     }
-    
     setErrors(prev => ({ ...prev, email: '' }))
     return true
   }
 
   const validateForm = (): boolean => {
     let isValid = true
-    
-    // Name validation
     if (!formData.full_name.trim()) {
       setErrors(prev => ({ ...prev, full_name: 'Full name is required' }))
       isValid = false
     } else {
       setErrors(prev => ({ ...prev, full_name: '' }))
     }
-    
-    // Phone validation
-    if (!validatePhone(formData.phone)) {
-      isValid = false
-    }
-    
-    // Email validation (optional)
-    if (!validateEmail(formData.email)) {
-      isValid = false
-    }
-    
-    // CNIC validation (optional)
-    if (!validateCNIC(formData.cnic)) {
-      isValid = false
-    }
-    
+    if (!validatePhone(formData.phone)) isValid = false
+    if (!validateEmail(formData.email)) isValid = false
+    if (!validateCNIC(formData.cnic)) isValid = false
     return isValid
   }
 
@@ -151,12 +131,8 @@ export default function CustomersPage() {
   // EXCEPTION HANDLING: Add customer with validation
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Validate all fields
     if (!validateForm()) {
-      toast.error('Validation Error', {
-        description: 'Please fix the errors in the form.'
-      })
+      toast.error('Validation Error', { description: 'Please fix the errors in the form.' })
       return
     }
 
@@ -166,7 +142,7 @@ export default function CustomersPage() {
         .from('customers')
         .insert([{
           full_name: formData.full_name.trim(),
-          phone: formData.phone.replace(/[-\s]/g, ''), // Remove dashes and spaces
+          phone: formData.phone.replace(/[-\s]/g, ''),
           email: formData.email.trim() || null,
           address: formData.address.trim() || null,
           cnic: formData.cnic.trim() || null
@@ -182,7 +158,6 @@ export default function CustomersPage() {
       setFormData({ full_name: '', phone: '', email: '', address: '', cnic: '' })
       setErrors({})
       fetchCustomers()
-      
     } catch (error: any) {
       toast.error('Failed to save customer', {
         description: error.message || 'An unexpected error occurred.'
@@ -194,38 +169,24 @@ export default function CustomersPage() {
 
   // INPUT HANDLERS with validation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9]/g, '') // Only allow numbers
-    
-    // Auto-format: 03001234567 -> 0300-1234567
+    let value = e.target.value.replace(/[^0-9]/g, '')
     if (value.length > 4) {
       value = value.slice(0, 4) + '-' + value.slice(4, 11)
     }
-    
     setFormData({ ...formData, phone: value })
-    
-    // Clear error when user starts typing
-    if (errors.phone) {
-      setErrors(prev => ({ ...prev, phone: '' }))
-    }
+    if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
   }
 
   const handleCNICChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9]/g, '') // Only allow numbers
-    
-    // Auto-format: 1234512345678 -> 12345-1234567-8
+    let value = e.target.value.replace(/[^0-9]/g, '')
     if (value.length > 5) {
       value = value.slice(0, 5) + '-' + value.slice(5)
     }
     if (value.length > 13) {
       value = value.slice(0, 13) + '-' + value.slice(13, 14)
     }
-    
     setFormData({ ...formData, cnic: value })
-    
-    // Clear error when user starts typing
-    if (errors.cnic) {
-      setErrors(prev => ({ ...prev, cnic: '' }))
-    }
+    if (errors.cnic) setErrors(prev => ({ ...prev, cnic: '' }))
   }
 
   const filteredCustomers = customers.filter(customer =>
@@ -233,6 +194,23 @@ export default function CustomersPage() {
     customer.phone.includes(searchTerm)
   )
 
+  // 2. CONDITIONAL RETURNS MUST COME AFTER ALL HOOKS
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-200 border-t-blue-600"></div>
+          <p className="mt-2 text-slate-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null 
+  }
+
+  // 3. MAIN UI RENDER
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -263,9 +241,7 @@ export default function CustomersPage() {
                     }}
                     className={errors.full_name ? 'border-red-500' : ''}
                   />
-                  {errors.full_name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.full_name}</p>
-                  )}
+                  {errors.full_name && <p className="text-sm text-red-500 mt-1">{errors.full_name}</p>}
                 </div>
 
                 <div>
@@ -278,9 +254,7 @@ export default function CustomersPage() {
                     maxLength={12}
                     className={errors.phone ? 'border-red-500' : ''}
                   />
-                  {errors.phone && (
-                    <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-                  )}
+                  {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
                   <p className="text-xs text-gray-500 mt-1">Format: 0300-1234567 (numbers only)</p>
                 </div>
 
@@ -296,9 +270,7 @@ export default function CustomersPage() {
                     }}
                     className={errors.email ? 'border-red-500' : ''}
                   />
-                  {errors.email && (
-                    <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                  )}
+                  {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -311,9 +283,7 @@ export default function CustomersPage() {
                     maxLength={15}
                     className={errors.cnic ? 'border-red-500' : ''}
                   />
-                  {errors.cnic && (
-                    <p className="text-sm text-red-500 mt-1">{errors.cnic}</p>
-                  )}
+                  {errors.cnic && <p className="text-sm text-red-500 mt-1">{errors.cnic}</p>}
                   <p className="text-xs text-gray-500 mt-1">Format: 12345-1234567-8 (13 digits)</p>
                 </div>
 
