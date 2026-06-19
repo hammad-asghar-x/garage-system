@@ -19,8 +19,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         {children}
-        {/* This is the Toast Notification System */}
-        <Toaster position="top-right" richColors closeButton />
+        {/* Toast Notification System */}
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton
+          duration={4000}
+        />
       </body>
     </html>
   );

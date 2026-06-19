@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut 
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -53,12 +52,12 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout Button */}
+      {/* User Info */}
       <div className="border-t border-slate-700 p-4">
-        <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white">
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+        <div className="text-sm text-slate-400">
+          <p>Logged in as</p>
+          <p className="font-semibold text-white">Admin</p>
+        </div>
       </div>
     </div>
   )
