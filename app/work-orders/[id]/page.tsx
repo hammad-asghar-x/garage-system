@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge' // We'll install this or use a span
 import { toast } from 'sonner'
 import Sidebar from '@/components/layout/Sidebar'
 import { useAuth } from '@/lib/useAuth'
