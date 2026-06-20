@@ -4,319 +4,346 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import Sidebar from '@/components/layout/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { toast } from 'sonner'
-import Link from 'next/link'
-import { Clock, Play, Square, Package, CheckCircle } from 'lucide-react'
+import { Wrench, Clock, CheckCircle, Package, AlertCircle, Play, Square, XCircle } from 'lucide-react'
 
-interface WorkOrder {
-  id: string
-  wo_number: string
-  complaint: string
-  status: string
-  assigned_to: string | null
-  customers: { full_name: string }
-  vehicles: { license_plate: string; make: string; model: string; year: number | null }
-}
-
-interface LaborSession {
-  id: string
-  work_order_id: string
-  start_time: string
-  end_time: string | null
-  duration_minutes: number | null
-  status: string
-}
-
-export default function TechnicianDashboard() {
-  const { user, loading: authLoading } = useAuth()
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
-  const [laborSessions, setLaborSessions] = useState<{[key: string]: LaborSession}>({})
-  const [loading, setLoading] = useState(false)
-  const [timers, setTimers] = useState<{[key: string]: number}>({})
+export default function TechnicianPage() {
+  const { user } = useAuth()
+  const [jobs, setJobs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  const [showRequestModal, setShowRequestModal] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState('')
+  const [availableParts, setAvailableParts] = useState<any[]>([])
+  const [selectedPartId, setSelectedPartId] = useState('')
+  const [partQty, setPartQty] = useState(1)
+  
+  const [activeTimers, setActiveTimers] = useState<{[key: string]: {id: string, startTime: number}}>({})
+  const [tick, setTick] = useState(0)
+  
+  const [filter, setFilter] = useState<'active' | 'my-jobs' | 'available' | 'completed' | 'rework'>('active')
 
   useEffect(() => {
-    if (user) {
-      fetchAssignedJobs()
-      fetchActiveLaborSessions()
-    }
-  }, [user])
-
-  // Update timers every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimers(prev => {
-        const newTimers = { ...prev }
-        Object.keys(newTimers).forEach(woId => {
-          newTimers[woId] = newTimers[woId] + 1
-        })
-        return newTimers
-      })
-    }, 1000)
-
+    const interval = setInterval(() => setTick(t => t + 1), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  const fetchAssignedJobs = async () => {
+  useEffect(() => { 
+    if (user) {
+      fetchJobs()
+      loadActiveTimers()
+    }
+  }, [user, filter])
+
+  const fetchJobs = async () => {
     setLoading(true)
     try {
+      let statusFilter = ['IN_PROGRESS', 'AWAITING_PARTS', 'PARTS_READY']
+      
+      if (filter === 'completed') {
+        statusFilter = ['QA_IN_PROGRESS', 'READY_FOR_BILLING', 'COMPLETED']
+      } else if (filter === 'rework') {
+        statusFilter = ['IN_PROGRESS'] // Jobs sent back from QA
+      }
+
       const { data, error } = await supabase
         .from('work_orders')
         .select(`
-          id, wo_number, complaint, status, assigned_to,
+          id, wo_number, complaint, status, technician_id,
           customers (full_name),
-          vehicles (license_plate, make, model, year)
+          vehicles (license_plate, make, model)
         `)
-        .in('status', ['IN_PROGRESS', 'PARTS_READY', 'REWORK_NEEDED'])
-        .eq('assigned_to', user?.id)
+        .in('status', statusFilter)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setWorkOrders((data as any) || [])
-    } catch (error: any) {
-      toast.error('Failed to load jobs', { description: error.message })
-    } finally {
-      setLoading(false)
-    }
+      setJobs((data as any) || [])
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
-  const fetchActiveLaborSessions = async () => {
+  const loadActiveTimers = async () => {
+    if (!user) return
     try {
       const { data, error } = await supabase
         .from('labor_tracking')
-        .select('*')
-        .eq('technician_id', user?.id)
+        .select('id, work_order_id, start_time')
+        .eq('technician_id', user.id)
         .eq('status', 'IN_PROGRESS')
-
+      
       if (error) throw error
 
-      const sessionsMap: {[key: string]: LaborSession} = {}
-      ;(data as any)?.forEach((session: LaborSession) => {
-        sessionsMap[session.work_order_id] = session
-        
-        const startTime = new Date(session.start_time).getTime()
-        const now = Date.now()
-        const elapsedSeconds = Math.floor((now - startTime) / 1000)
-        
-        setTimers(prev => ({ ...prev, [session.work_order_id]: elapsedSeconds }))
+      const newTimers: any = {}
+      data?.forEach((record: any) => {
+        newTimers[record.work_order_id] = {
+          id: record.id,
+          startTime: new Date(record.start_time).getTime()
+        }
       })
-      
-      setLaborSessions(sessionsMap)
-    } catch (error: any) {
-      console.error('Error fetching labor sessions:', error)
+      setActiveTimers(newTimers)
+    } catch (error) {
+      console.error('Failed to load active timers:', error)
     }
+  }
+
+  const formatTime = (startTime: number) => {
+    const diff = Date.now() - startTime
+    const hrs = Math.floor(diff / 3600000)
+    const mins = Math.floor((diff % 3600000) / 60000)
+    const secs = Math.floor((diff % 60000) / 1000)
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
   const handleStartTimer = async (woId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: pastSessions } = await supabase
         .from('labor_tracking')
-        .insert([{
-          work_order_id: woId,
-          technician_id: user?.id,
-          start_time: new Date().toISOString(),
-          status: 'IN_PROGRESS'
-        }])
-        .select()
-        .single()
+        .select('start_time, end_time, duration_minutes')
+        .eq('work_order_id', woId)
+        .eq('technician_id', user?.id)
+        .eq('status', 'COMPLETED')
+
+      let previousDurationMs = 0;
+      if (pastSessions) {
+        for (const session of pastSessions) {
+          if (session.duration_minutes) {
+            previousDurationMs += session.duration_minutes * 60000;
+          } else if (session.start_time && session.end_time) {
+            previousDurationMs += new Date(session.end_time).getTime() - new Date(session.start_time).getTime();
+          }
+        }
+      }
+
+      const virtualStartTime = Date.now() - previousDurationMs;
+
+      const { data, error } = await supabase.from('labor_tracking').insert([{
+        work_order_id: woId,
+        technician_id: user?.id,
+        start_time: new Date(virtualStartTime).toISOString(),
+        status: 'IN_PROGRESS'
+      }]).select().single()
 
       if (error) throw error
 
-      setLaborSessions(prev => ({ ...prev, [woId]: data as any }))
-      setTimers(prev => ({ ...prev, [woId]: 0 }))
+      setActiveTimers(prev => ({
+        ...prev,
+        [woId]: { id: data.id, startTime: virtualStartTime }
+      }))
 
-      toast.success('Timer Started!', { description: 'Tracking your work time.' })
-    } catch (error: any) {
-      toast.error('Failed to start timer', { description: error.message })
+      toast.success(previousDurationMs > 0 ? 'Timer Resumed!' : 'Timer Started!')
+    } catch (e: any) { 
+      toast.error('Error starting timer', { description: e.message }) 
     }
   }
 
   const handleStopTimer = async (woId: string) => {
-    const session = laborSessions[woId]
-    if (!session) return
+    const timer = activeTimers[woId]
+    if (!timer) {
+      toast.error('No active timer found for this job.')
+      return
+    }
 
     try {
       const { error } = await supabase
         .from('labor_tracking')
-        .update({
+        .update({ 
           end_time: new Date().toISOString(),
           status: 'COMPLETED'
         })
-        .eq('id', session.id)
-
-      if (error) throw error
-
-      setLaborSessions(prev => {
-        const newSessions = { ...prev }
-        delete newSessions[woId]
-        return newSessions
-      })
-
-      setTimers(prev => {
-        const newTimers = { ...prev }
-        delete newTimers[woId]
-        return newTimers
-      })
-
-      toast.success('Timer Stopped!', { description: 'Work time recorded.' })
-    } catch (error: any) {
-      toast.error('Failed to stop timer', { description: error.message })
-    }
-  }
-
-  // NEW FUNCTION: Mark Job as Complete
-  const handleCompleteJob = async (woId: string) => {
-    // Optional: Auto-stop timer if it's still running
-    if (laborSessions[woId]) {
-      await handleStopTimer(woId)
-    }
-
-    try {
-      const { error } = await supabase
-        .from('work_orders')
-        .update({ status: 'REPAIRS_COMPLETED' })
-        .eq('id', woId)
-
-      if (error) throw error
-
-      toast.success('Job Marked as Complete!', { 
-        description: 'Work order sent to Quality Assurance (QA).' 
-      })
+        .eq('id', timer.id)
       
-      // Remove from local list so it disappears from the dashboard
-      setWorkOrders(prev => prev.filter(wo => wo.id !== woId))
-    } catch (error: any) {
-      toast.error('Failed to complete job', { description: error.message })
+      if (error) throw error
+
+      setActiveTimers(prev => {
+        const newState = { ...prev }
+        delete newState[woId]
+        return newState
+      })
+
+      toast.success('Timer Paused & Saved!')
+    } catch (e: any) { 
+      toast.error('Error stopping timer', { description: e.message }) 
     }
   }
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const openRequestModal = async (woId: string) => {
+    setSelectedJobId(woId)
+    setShowRequestModal(true)
+    const { data } = await supabase.from('parts').select('id, name, sku, quantity').order('name')
+    setAvailableParts((data as any) || [])
   }
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-slate-200 border-t-blue-600"></div>
-      </div>
-    )
+  const handleClaimJob = async (woId: string) => {
+    try {
+      await supabase.from('work_orders').update({ technician_id: user?.id, status: 'IN_PROGRESS' }).eq('id', woId)
+      toast.success('Job Claimed!')
+      fetchJobs()
+    } catch (e: any) { toast.error('Error', { description: e.message }) }
   }
 
-  if (!user) return null
+  const handleRequestParts = async () => {
+    if (!selectedPartId || !selectedJobId) return toast.error('Please select a part')
+    try {
+      await supabase.from('part_requests').insert([{
+        work_order_id: selectedJobId,
+        requested_by: user?.id,
+        part_id: selectedPartId,
+        quantity: partQty,
+        status: 'PENDING'
+      }])
+      await supabase.from('work_orders').update({ status: 'AWAITING_PARTS' }).eq('id', selectedJobId)
+      toast.success('Parts Requested!')
+      setShowRequestModal(false)
+      setSelectedPartId('')
+      setPartQty(1)
+      fetchJobs()
+    } catch (e: any) { toast.error('Error', { description: e.message }) }
+  }
+
+  const handleMarkComplete = async (woId: string) => {
+    try {
+      if (activeTimers[woId]) {
+        await handleStopTimer(woId)
+      }
+      await supabase.from('work_orders').update({ status: 'QA_IN_PROGRESS' }).eq('id', woId)
+      toast.success('Repair Complete! Sent to QA.')
+      fetchJobs()
+    } catch (e: any) { toast.error('Error', { description: e.message }) }
+  }
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'AWAITING_PARTS') return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold flex items-center gap-1"><AlertCircle className="h-3 w-3"/> Awaiting Parts</span>
+    if (status === 'PARTS_READY') return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold flex items-center gap-1"><Package className="h-3 w-3"/> Parts Ready</span>
+    if (status === 'QA_IN_PROGRESS') return <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> In QA</span>
+    if (status === 'COMPLETED') return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle className="h-3 w-3"/> Completed</span>
+    return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> In Progress</span>
+  }
+
+  const filteredJobs = jobs.filter(job => {
+    if (filter === 'my-jobs') return job.technician_id === user?.id && ['IN_PROGRESS', 'AWAITING_PARTS', 'PARTS_READY'].includes(job.status)
+    if (filter === 'available') return !job.technician_id
+    if (filter === 'completed') return job.technician_id === user?.id
+    if (filter === 'rework') return job.technician_id === user?.id && job.status === 'IN_PROGRESS'
+    return true
+  })
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 ml-64 p-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-800">Technician Workbench</h1>
-          <p className="text-slate-600 mt-1">Your assigned jobs and active timers</p>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2"><Wrench className="h-8 w-8 text-blue-600"/> Technician Dashboard</h1>
+          <Button onClick={fetchJobs} variant="outline">Refresh</Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" /> Assigned Work Orders ({workOrders.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-center py-8">Loading jobs...</p>
-            ) : (
-              <div className="space-y-4">
-                {workOrders.map((wo) => {
-                  const hasActiveTimer = laborSessions[wo.id]
-                  const elapsedSeconds = timers[wo.id] || 0
+        <div className="flex gap-2 mb-6 flex-wrap">
+          <Button onClick={() => setFilter('active')} variant={filter === 'active' ? 'default' : 'outline'} className={filter === 'active' ? 'bg-blue-600' : ''}>Active Jobs</Button>
+          <Button onClick={() => setFilter('my-jobs')} variant={filter === 'my-jobs' ? 'default' : 'outline'} className={filter === 'my-jobs' ? 'bg-blue-600' : ''}>My Active Jobs</Button>
+          <Button onClick={() => setFilter('available')} variant={filter === 'available' ? 'default' : 'outline'} className={filter === 'available' ? 'bg-blue-600' : ''}>Available</Button>
+          <Button onClick={() => setFilter('rework')} variant={filter === 'rework' ? 'default' : 'outline'} className={filter === 'rework' ? 'bg-red-600 text-white' : ''}>
+            <XCircle className="h-4 w-4 mr-1" /> Rework Needed
+          </Button>
+          <Button onClick={() => setFilter('completed')} variant={filter === 'completed' ? 'default' : 'outline'} className={filter === 'completed' ? 'bg-green-600' : ''}>
+            <CheckCircle className="h-4 w-4 mr-1" /> Completed
+          </Button>
+        </div>
+        
+        {loading ? <p>Loading...</p> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredJobs.map((job) => {
+              const isMyJob = job.technician_id === user?.id
+              const isAssigned = !!job.technician_id
+              const activeTimer = activeTimers[job.id]
+              const isRework = filter === 'rework'
+              const isCompleted = filter === 'completed'
 
-                  return (
-                    <div key={wo.id} className="border rounded-lg p-4 bg-white shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-bold text-blue-600 text-lg">{wo.wo_number}</p>
-                          <p className="text-slate-700 font-medium">
-                            {wo.vehicles.year} {wo.vehicles.make} {wo.vehicles.model} ({wo.vehicles.license_plate})
-                          </p>
-                          <p className="text-sm text-slate-500">Customer: {wo.customers.full_name}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            wo.status === 'REWORK_NEEDED' ? 'bg-red-100 text-red-800' :
-                            wo.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                          }`}>
-                            {wo.status.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="bg-slate-50 p-3 rounded mb-3">
-                        <p className="text-sm text-slate-600">
-                          <span className="font-semibold">Complaint:</span> {wo.complaint}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {!hasActiveTimer ? (
-                          <Button 
-                            onClick={() => handleStartTimer(wo.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Timer
-                          </Button>
-                        ) : (
-                          <>
-                            <div className="flex items-center gap-2 bg-blue-100 px-4 py-2 rounded">
-                              <Clock className="h-4 w-4 text-blue-600" />
-                              <span className="font-mono font-bold text-blue-800">
-                                {formatTime(elapsedSeconds)}
-                              </span>
-                            </div>
-                            <Button 
-                              onClick={() => handleStopTimer(wo.id)}
-                              variant="destructive"
-                            >
-                              <Square className="h-4 w-4 mr-2" />
-                              Stop Timer
-                            </Button>
-                          </>
-                        )}
-                        
-                        <Link href={`/technician/${wo.id}/parts`}>
-                          <Button variant="outline">
-                            <Package className="h-4 w-4 mr-2" />
-                            Request Parts
-                          </Button>
-                        </Link>
-
-                        {/* NEW BUTTON: Mark as Complete */}
-                        <Button 
-                          onClick={() => handleCompleteJob(wo.id)}
-                          className="bg-slate-800 hover:bg-slate-900 ml-auto"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Mark as Complete
-                        </Button>
-                      </div>
+              return (
+                <Card key={job.id} className={`border-l-4 ${isRework ? 'border-l-red-500' : isMyJob ? 'border-l-green-500' : 'border-l-blue-500'}`}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-lg">{job.wo_number}</CardTitle>
+                      {getStatusBadge(job.status)}
                     </div>
-                  )
-                })}
+                    <p className="text-sm text-slate-600">{job.vehicles?.make} {job.vehicles?.model} ({job.vehicles?.license_plate})</p>
+                    {isRework && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                        <strong>️ QA Failed:</strong> This job was sent back for rework. Check QA comments for details.
+                      </div>
+                    )}
+                    {activeTimer && (
+                      <div className="mt-2 flex items-center gap-2 text-green-600 font-mono font-bold bg-green-50 px-2 py-1 rounded border border-green-200">
+                        <Clock className="h-4 w-4 animate-pulse" />
+                        {formatTime(activeTimer.startTime)}
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-700 mb-4 bg-slate-50 p-2 rounded">"{job.complaint}"</p>
+                    
+                    {!isAssigned && !isCompleted ? (
+                      <Button onClick={() => handleClaimJob(job.id)} className="w-full bg-blue-600 hover:bg-blue-700">Claim Job</Button>
+                    ) : isMyJob && !isCompleted ? (
+                      <div className="space-y-2">
+                        <div className="flex gap-2 mb-3 p-2 bg-slate-50 rounded border">
+                          {activeTimer ? (
+                            <Button onClick={() => handleStopTimer(job.id)} variant="destructive" className="flex-1">
+                              <Square className="h-4 w-4 mr-1" /> Pause Timer
+                            </Button>
+                          ) : (
+                            <Button onClick={() => handleStartTimer(job.id)} className="flex-1 bg-green-600 hover:bg-green-700">
+                              <Play className="h-4 w-4 mr-1" /> Start / Resume Timer
+                            </Button>
+                          )}
+                        </div>
 
-                {workOrders.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-slate-500">No work orders assigned to you.</p>
-                    <p className="text-sm text-slate-400 mt-1">
-                      Contact the manager to get assigned to jobs.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="flex-1" onClick={() => openRequestModal(job.id)} disabled={job.status === 'AWAITING_PARTS'}>
+                            <Package className="h-4 w-4 mr-1" /> Request Parts
+                          </Button>
+                          <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleMarkComplete(job.id)} disabled={job.status === 'AWAITING_PARTS'}>
+                            <CheckCircle className="h-4 w-4 mr-1" /> Mark Complete
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              )
+            })}
+            {filteredJobs.length === 0 && <p className="col-span-3 text-center py-12 text-slate-500">No jobs found.</p>}
+          </div>
+        )}
+
+        {/* Request Parts Modal */}
+        {showRequestModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-96">
+              <CardHeader><CardTitle>Request Parts</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Select Part</Label>
+                  <select className="w-full p-2 border rounded-lg mt-1 bg-white" value={selectedPartId} onChange={e => setSelectedPartId(e.target.value)}>
+                    <option value="">-- Choose a part --</option>
+                    {availableParts.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.sku}) - Stock: {p.quantity}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Quantity</Label>
+                  <input type="number" className="w-full p-2 border rounded-lg mt-1" value={partQty} onChange={e => setPartQty(parseInt(e.target.value))} min="1" />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleRequestParts} className="flex-1" disabled={!selectedPartId}>Submit Request</Button>
+                  <Button variant="outline" onClick={() => setShowRequestModal(false)}>Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

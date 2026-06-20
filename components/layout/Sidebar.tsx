@@ -9,33 +9,111 @@ import {
   FileText, 
   Package, 
   Settings,
-  LogOut 
+  LogOut,
+  Wrench,
+  ShieldCheck,
+  DollarSign,
+  UserCog,
+  Calendar,
+  CheckCircle
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 
+// Define which roles can see which menu items
 const menuItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Vehicles', href: '/vehicles', icon: Car },
-  { name: 'Work Orders', href: '/work-orders', icon: FileText },
-  { name: 'Inventory', href: '/inventory', icon: Package },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { 
+    name: 'Dashboard', 
+    href: '/dashboard', 
+    icon: LayoutDashboard, 
+    roles: ['super_admin', 'manager', 'receptionist', 'inspection_tech', 'inventory_clerk', 'technician', 'qa_tech', 'accountant', 'customer'] 
+  },
+  { 
+    name: 'Customers', 
+    href: '/customers', 
+    icon: Users, 
+    roles: ['super_admin', 'manager', 'receptionist'] 
+  },
+  { 
+    name: 'Vehicles', 
+    href: '/vehicles', 
+    icon: Car, 
+    roles: ['super_admin', 'manager', 'receptionist'] 
+  },
+  { 
+    name: 'Work Orders', 
+    href: '/work-orders', 
+    icon: FileText, 
+    roles: ['super_admin', 'manager', 'receptionist'] 
+  },
+  { 
+    name: 'Appointments', 
+    href: '/appointments', 
+    icon: Calendar, 
+    roles: ['super_admin', 'manager', 'receptionist'] 
+  },
+  { 
+    name: 'Inspection', 
+    href: '/inspection', 
+    icon: CheckCircle, 
+    roles: ['super_admin', 'manager', 'inspection_tech'] 
+  },
+  { 
+    name: 'Technician', 
+    href: '/technician', 
+    icon: Wrench, 
+    roles: ['super_admin', 'manager', 'technician'] 
+  },
+  { 
+    name: 'QA', 
+    href: '/qa', 
+    icon: ShieldCheck, 
+    roles: ['super_admin', 'manager', 'qa_tech'] 
+  },
+  { 
+    name: 'Inventory', 
+    href: '/inventory', 
+    icon: Package, 
+    roles: ['super_admin', 'manager', 'inventory_clerk'] 
+  },
+  { 
+    name: 'Billing', 
+    href: '/billing', 
+    icon: DollarSign, 
+    roles: ['super_admin', 'manager', 'accountant'] 
+  },
+  { 
+    name: 'Staff', 
+    href: '/staff', 
+    icon: UserCog, 
+    roles: ['super_admin', 'manager'] 
+  },
+  { 
+    name: 'Settings', 
+    href: '/settings', 
+    icon: Settings, 
+    roles: ['super_admin', 'manager'] 
+  },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
 
+  // Filter menu items based on the user's role
+  const visibleMenuItems = menuItems.filter(item => 
+    user && item.roles.includes((user as any).role)
+  )
+
   return (
     <div className="flex h-screen w-64 flex-col bg-slate-900 text-white fixed left-0 top-0">
       {/* Logo Area */}
       <div className="flex h-16 items-center border-b border-slate-700 px-6">
-        <h1 className="text-xl font-bold text-blue-400"> GMS Pro</h1>
+        <h1 className="text-xl font-bold text-blue-400">GMS Pro</h1>
       </div>
 
       {/* Navigation Links */}
       <nav className="flex-1 space-y-2 px-4 py-6">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
@@ -60,8 +138,8 @@ export default function Sidebar() {
           <>
             <div className="mb-3">
               <p className="text-xs text-slate-400">Logged in as</p>
-              <p className="font-semibold text-white truncate">{user.full_name}</p>
-              <p className="text-xs text-blue-400 capitalize">{user.role.replace('_', ' ')}</p>
+              <p className="font-semibold text-white truncate">{(user as any).full_name || 'User'}</p>
+              <p className="text-xs text-blue-400 capitalize">{(user as any).role?.replace('_', ' ') || 'customer'}</p>
             </div>
             <button 
               onClick={signOut}

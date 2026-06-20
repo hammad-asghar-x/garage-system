@@ -8,7 +8,8 @@ import {
   MapPin, 
   Mail, 
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  User
 } from 'lucide-react'
 
 export default function Home() {
@@ -25,12 +26,17 @@ export default function Home() {
               <span className="text-xl font-bold text-slate-900">GMS Pro</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/track" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+              <Link href="/track" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors hidden sm:block">
                 Track Vehicle
               </Link>
-              <Link href="/login">
+              <Link href="/customer/login">
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
-                  Staff Login <ArrowRight className="h-4 w-4" />
+                  Customer Portal <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+              <Link href="/login">
+                <button className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                  Staff Login
                 </button>
               </Link>
             </div>
@@ -39,7 +45,7 @@ export default function Home() {
       </nav>
 
       {/* 2. HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-24 overflow-hidden">
+      <section className="relative bg-linear-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-24 overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
@@ -47,17 +53,22 @@ export default function Home() {
             <span className="text-blue-400">Transparent Service</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-            Experience the future of garage management. Track your vehicle's repair status in real-time, view inspection photos, and get transparent pricing.
+            Experience the future of garage management. Book appointments online, track your vehicle's repair status in real-time, and get transparent pricing.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link href="/track">
+            <Link href="/customer/login">
               <button className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2">
-                Track My Vehicle <Car className="h-5 w-5" />
+                Customer Portal <User className="h-5 w-5" />
+              </button>
+            </Link>
+            <Link href="/track">
+              <button className="bg-white/10 hover:bg-white/20 backdrop-blur text-white border border-white/20 px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2">
+                Track Vehicle <Car className="h-5 w-5" />
               </button>
             </Link>
             <Link href="/login">
-              <button className="bg-white/10 hover:bg-white/20 backdrop-blur text-white border border-white/20 px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2">
-                Staff Portal <ArrowRight className="h-5 w-5" />
+              <button className="bg-white hover:bg-slate-100 text-blue-900 px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2">
+                Staff Login <ArrowRight className="h-5 w-5" />
               </button>
             </Link>
           </div>
@@ -141,7 +152,7 @@ export default function Home() {
             <div>
               <h4 className="text-white font-bold mb-4">Contact Us</h4>
               <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +92 308 9244041</li>
+                <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +92 300 1234567</li>
                 <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> info@gmspro.com</li>
                 <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> 123 Auto Lane, Karachi</li>
               </ul>
@@ -149,6 +160,7 @@ export default function Home() {
             <div>
               <h4 className="text-white font-bold mb-4">Quick Links</h4>
               <ul className="space-y-3 text-sm">
+                <li><Link href="/customer/login" className="hover:text-white transition-colors">Customer Portal</Link></li>
                 <li><Link href="/track" className="hover:text-white transition-colors">Track Vehicle</Link></li>
                 <li><Link href="/login" className="hover:text-white transition-colors">Staff Login</Link></li>
               </ul>
