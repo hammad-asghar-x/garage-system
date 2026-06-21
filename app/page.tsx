@@ -1,174 +1,221 @@
 import Link from 'next/link'
 import { 
-  Wrench, 
-  Car, 
-  Shield, 
-  Clock, 
-  Phone, 
-  MapPin, 
-  Mail, 
-  CheckCircle2,
-  ArrowRight,
-  User
+  Wrench, Car, Shield, Clock, Phone, Mail, MapPin, 
+  CheckCircle, Star, ArrowRight, Calendar, Users, Award,
+  TrendingUp, Zap, Heart
 } from 'lucide-react'
 
-export default function Home() {
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* 1. NAVBAR */}
-      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Wrench className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-900">GMS Pro</span>
+      {/* Navbar */}
+      <nav className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600 p-1.5 rounded-lg">
+              <Wrench className="h-5 w-5 text-white" />
             </div>
-            <div className="flex items-center gap-4">
-              <Link href="/track" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors hidden sm:block">
-                Track Vehicle
-              </Link>
-              <Link href="/customer/login">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
-                  Customer Portal <ArrowRight className="h-4 w-4" />
-                </button>
-              </Link>
-              <Link href="/login">
-                <button className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
-                  Staff Login
-                </button>
-              </Link>
-            </div>
+            <span className="font-bold text-xl text-slate-900">GMS Pro</span>
+          </div>
+          <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+            <a href="#services" className="hover:text-blue-600">Services</a>
+            <a href="#why-us" className="hover:text-blue-600">Why Us</a>
+            <a href="#contact" className="hover:text-blue-600">Contact</a>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/customer/login">
+              <button className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg">
+                Customer Login
+              </button>
+            </Link>
+            <Link href="/login">
+              <button className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 rounded-lg">
+                Staff Login
+              </button>
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* 2. HERO SECTION */}
-      <section className="relative bg-linear-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
-            Premium Auto Care & <br className="hidden md:block" />
-            <span className="text-blue-400">Transparent Service</span>
-          </h1>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-            Experience the future of garage management. Book appointments online, track your vehicle's repair status in real-time, and get transparent pricing.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link href="/customer/login">
-              <button className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2">
-                Customer Portal <User className="h-5 w-5" />
-              </button>
-            </Link>
-            <Link href="/track">
-              <button className="bg-white/10 hover:bg-white/20 backdrop-blur text-white border border-white/20 px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2">
-                Track Vehicle <Car className="h-5 w-5" />
-              </button>
-            </Link>
-            <Link href="/login">
-              <button className="bg-white hover:bg-slate-100 text-blue-900 px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2">
-                Staff Login <ArrowRight className="h-5 w-5" />
-              </button>
-            </Link>
+      {/* Hero Section */}
+      <section className="bg-linear-to-br from-blue-600 via-blue-700 to-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-20 md:py-28">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur rounded-full text-sm mb-6">
+                <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                <span>Trusted by 1000+ customers</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Professional Auto Care You Can Trust
+              </h1>
+              <p className="text-xl text-blue-100 mb-8">
+                From routine maintenance to complex repairs, our certified technicians deliver quality service with transparency and care.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/customer/login">
+                  <button className="w-full sm:w-auto px-6 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 shadow-lg">
+                    Access Customer Portal <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+                <a href="#services" className="w-full sm:w-auto px-6 py-3 bg-white/10 backdrop-blur text-white font-semibold rounded-lg hover:bg-white/20 flex items-center justify-center gap-2">
+                  Explore Services
+                </a>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/10 rounded-3xl blur-3xl"></div>
+                <div className="relative bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/20">
+                  <Car className="h-32 w-32 text-white mx-auto mb-4" />
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-3xl font-bold">15+</p>
+                      <p className="text-sm text-blue-200">Years Experience</p>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold">5000+</p>
+                      <p className="text-sm text-blue-200">Cars Serviced</p>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold">98%</p>
+                      <p className="text-sm text-blue-200">Happy Clients</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. SERVICES SECTION */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Our Expert Services</h2>
-            <p className="text-slate-600 max-w-2xl mx-auto">From routine maintenance to complex engine repairs, our certified technicians handle it all with precision.</p>
+      {/* Services Section */}
+      <section id="services" className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Our Services</h2>
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              Comprehensive automotive services to keep your vehicle running smoothly
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: 'Engine Diagnostics', desc: 'Advanced computer scanning to pinpoint engine issues accurately.' },
-              { title: 'Brake Repair', desc: 'Complete brake pad replacement, rotor resurfacing, and fluid flushes.' },
-              { title: 'AC Service', desc: 'Keep your car cool with our comprehensive AC inspection and gas refilling.' },
-              { title: 'Oil & Lube', desc: 'Premium synthetic oil changes to keep your engine running smoothly.' }
-            ].map((service, index) => (
-              <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                  <Wrench className="h-6 w-6 text-blue-600" />
+              { icon: Wrench, title: 'General Service', desc: 'Complete vehicle inspection and maintenance', color: 'blue' },
+              { icon: Car, title: 'Engine Repair', desc: 'Expert diagnostics and engine repairs', color: 'green' },
+              { icon: Shield, title: 'Brake Service', desc: 'Brake inspection, repair and replacement', color: 'red' },
+              { icon: Clock, title: 'AC Service', desc: 'AC repair, gas refill and maintenance', color: 'cyan' },
+              { icon: Award, title: 'Electrical Work', desc: 'Battery, alternator and wiring services', color: 'yellow' },
+              { icon: Users, title: 'Tire Service', desc: 'Tire replacement, balancing and alignment', color: 'purple' },
+              { icon: CheckCircle, title: 'Suspension', desc: 'Shock absorbers and suspension repair', color: 'orange' },
+              { icon: Calendar, title: 'Transmission', desc: 'Gearbox repair and transmission service', color: 'pink' },
+            ].map((service, i) => (
+              <div key={i} className="bg-white p-6 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:shadow-xl transition-all group">
+                <div className={`h-14 w-14 bg-${service.color}-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <service.icon className={`h-7 w-7 text-${service.color}-600`} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{service.title}</h3>
-                <p className="text-slate-600">{service.desc}</p>
+                <h3 className="font-bold text-lg text-slate-900 mb-2">{service.title}</h3>
+                <p className="text-sm text-slate-600">{service.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 4. WHY CHOOSE US */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Why Customers Trust Us</h2>
-            <p className="text-slate-600">We believe in transparency, quality, and keeping you informed every step of the way.</p>
+      {/* Why Choose Us */}
+      <section id="why-us" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Why Choose GMS Pro?</h2>
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              We're committed to providing the best automotive service experience
+            </p>
           </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Shield, title: 'Certified Technicians', desc: 'Our team consists of trained and certified mechanics with years of experience', color: 'blue' },
+              { icon: Clock, title: 'Transparent Process', desc: 'Real-time updates on your vehicle service status from inspection to completion', color: 'green' },
+              { icon: Award, title: 'Quality Guaranteed', desc: 'We use genuine parts and provide warranty on all our services', color: 'yellow' },
+            ].map((feature, i) => (
+              <div key={i} className="text-center p-6 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors">
+                <div className={`h-16 w-16 bg-${feature.color}-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                  <feature.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{feature.title}</h3>
+                <p className="text-slate-600">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Shield className="h-8 w-8 text-green-600" />
+      {/* CTA Section */}
+      <section className="py-20 bg-linear-to-r from-blue-600 to-blue-700 text-white">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <Zap className="h-16 w-16 mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Experience Quality Service?</h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of satisfied customers who trust GMS Pro for their vehicle care
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/customer/login">
+              <button className="w-full sm:w-auto px-8 py-4 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 shadow-xl text-lg">
+                <Heart className="h-5 w-5" />
+                Access Your Portal
+              </button>
+            </Link>
+            <a href="#contact" className="w-full sm:w-auto px-8 py-4 bg-blue-800 text-white font-bold rounded-lg hover:bg-blue-900 flex items-center justify-center gap-2 text-lg">
+              <Phone className="h-5 w-5" />
+              Contact Us
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Visit Us Today</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Drop by our garage or get in touch with us
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center p-6 bg-slate-800 rounded-2xl">
+              <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Certified Mechanics</h3>
-              <p className="text-slate-600">Our team consists of highly trained professionals with years of experience.</p>
+              <h3 className="font-bold mb-2">Location</h3>
+              <p className="text-slate-400 text-sm">123 Auto Lane, Karachi, Pakistan</p>
             </div>
-            <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="h-8 w-8 text-blue-600" />
+            <div className="text-center p-6 bg-slate-800 rounded-2xl">
+              <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Phone className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Real-Time Tracking</h3>
-              <p className="text-slate-600">Track your car's repair status online. No more guessing when it will be ready.</p>
+              <h3 className="font-bold mb-2">Phone</h3>
+              <p className="text-slate-400 text-sm">+92 300 1234567</p>
             </div>
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="h-8 w-8 text-purple-600" />
+            <div className="text-center p-6 bg-slate-800 rounded-2xl">
+              <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Mail className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Transparent Pricing</h3>
-              <p className="text-slate-600">Detailed digital invoices with photos of replaced parts. No hidden fees.</p>
+              <h3 className="font-bold mb-2">Email</h3>
+              <p className="text-slate-400 text-sm">info@gmspro.com</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. FOOTER */}
-      <footer className="bg-slate-900 text-slate-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-blue-600 p-2 rounded-lg">
-                  <Wrench className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-lg font-bold text-white">GMS Pro</span>
-              </div>
-              <p className="text-sm">The most advanced garage management system for modern auto shops.</p>
+      {/* Footer */}
+      <footer className="bg-slate-950 text-slate-400 py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="bg-blue-600 p-1.5 rounded-lg">
+              <Wrench className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Contact Us</h4>
-              <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +92 300 1234567</li>
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> info@gmspro.com</li>
-                <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> 123 Auto Lane, Karachi</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Quick Links</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/customer/login" className="hover:text-white transition-colors">Customer Portal</Link></li>
-                <li><Link href="/track" className="hover:text-white transition-colors">Track Vehicle</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Staff Login</Link></li>
-              </ul>
-            </div>
+            <span className="font-bold text-lg text-white">GMS Pro</span>
           </div>
-          <div className="border-t border-slate-800 pt-8 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} GMS Pro Garage Management. All rights reserved.</p>
-          </div>
+          <p className="text-sm">© 2026 GMS Pro Garage. All rights reserved.</p>
         </div>
       </footer>
     </div>

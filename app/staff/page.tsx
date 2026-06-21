@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import Sidebar from '@/components/layout/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { toast } from 'sonner'
-import { UserPlus, Users, Shield, X } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Phone, X, Copy, CheckCircle } from 'lucide-react'
 
 const ROLES = [
   { value: 'manager', label: 'Manager' },
@@ -25,6 +25,7 @@ export default function StaffPage() {
   const { user } = useAuth()
   const [staff, setStaff] = useState<any[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [newStaff, setNewStaff] = useState({
     full_name: '',
@@ -33,6 +34,7 @@ export default function StaffPage() {
     role: 'technician',
     hourly_rate: '1000'
   })
+  const [createdStaff, setCreatedStaff] = useState({ email: '', password: '' })
 
   useEffect(() => { if (user) fetchStaff() }, [user])
 
@@ -52,42 +54,46 @@ export default function StaffPage() {
 
     setLoading(true)
     try {
-      // Check if email already exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', newStaff.email)
-        .single()
-
-      if (existingUser) {
-        toast.error('Email Already Exists', { description: 'This email is already registered.' })
-        setLoading(false)
-        return
+      // Get current user's session token
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
       }
 
-      // Add to database
-      const { error } = await supabase.from('users').insert([{
-        full_name: newStaff.full_name,
-        email: newStaff.email,
-        phone: newStaff.phone,
-        role: newStaff.role,
-        hourly_rate: parseFloat(newStaff.hourly_rate) || 1000
-      }])
-
-      if (error) throw error
-
-      toast.success('Staff Added!', { 
-        description: `${newStaff.full_name} added. They need to sign up at /login with this email.` 
+      // Call our secure API route
+      const response = await fetch('/api/staff', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(newStaff)
       })
-      
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create staff')
+      }
+
+      // Show success modal with credentials
+      setCreatedStaff({ email: data.email, password: data.tempPassword })
+      setShowSuccessModal(true)
       setShowAddModal(false)
       setNewStaff({ full_name: '', email: '', phone: '', role: 'technician', hourly_rate: '1000' })
       fetchStaff()
+      
     } catch (error: any) {
       toast.error('Failed to add staff', { description: error.message })
     } finally {
       setLoading(false)
     }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success('Copied to clipboard!')
   }
 
   return (
@@ -117,7 +123,9 @@ export default function StaffPage() {
                   <tr>
                     <th className="text-left p-3">Name</th>
                     <th className="text-left p-3">Role</th>
-                    <th className="text-left p-3">Email</th>
+                    <th className="text-left p-3">
+                      <span className="flex items-center gap-1"><Mail className="h-4 w-4" /> Email</span>
+                    </th>
                     <th className="text-left p-3">Phone</th>
                     <th className="text-right p-3">Hourly Rate</th>
                   </tr>
@@ -203,15 +211,82 @@ export default function StaffPage() {
                     onChange={(e) => setNewStaff({...newStaff, hourly_rate: e.target.value})}
                   />
                 </div>
-                <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-                  <strong>Note:</strong> Staff will need to sign up at <strong>/login</strong> using this email address.
-                </div>
                 <Button onClick={handleAddStaff} disabled={loading} className="w-full">
-                  {loading ? 'Adding...' : (
+                  {loading ? 'Creating Account...' : (
                     <>
-                      <UserPlus className="h-4 w-4 mr-2" /> Add Staff Member
+                      <UserPlus className="h-4 w-4 mr-2" /> Create Staff Account
                     </>
                   )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Success Modal with Credentials */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md border-2 border-green-500">
+              <CardHeader className="bg-green-50">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="h-5 w-5" /> Staff Created Successfully!
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setShowSuccessModal(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-800 mb-3">
+                    The staff account has been created. Share these credentials securely:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-green-700">Email</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 p-2 bg-white border border-green-300 rounded font-mono text-sm">
+                          {createdStaff.email}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => copyToClipboard(createdStaff.email)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-green-700">Temporary Password</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 p-2 bg-white border border-green-300 rounded font-mono text-sm">
+                          {createdStaff.password}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => copyToClipboard(createdStaff.password)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-sm text-yellow-800">
+                  <strong>⚠️ Important:</strong> Ask the staff member to change their password after first login.
+                </div>
+
+                <Button 
+                  onClick={() => setShowSuccessModal(false)} 
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  Done
                 </Button>
               </CardContent>
             </Card>

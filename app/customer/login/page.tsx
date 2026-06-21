@@ -1,176 +1,150 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { Wrench, Mail, Lock, Phone, User, ArrowRight, Car } from 'lucide-react'
-import Link from 'next/link'
+import { Phone, CreditCard, ArrowRight, Car, ArrowLeft } from 'lucide-react'
 
 export default function CustomerLoginPage() {
-  const [isSignup, setIsSignup] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [identifier, setIdentifier] = useState('')
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'cnic'>('phone')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!identifier.trim()) {
+      toast.error('Required', { description: 'Please enter your mobile number or CNIC' })
+      return
+    }
+
     setLoading(true)
-
     try {
-      if (isSignup) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
+      const column = loginMethod === 'phone' ? 'phone' : 'cnic'
+      
+      const { data: customer, error } = await supabase
+        .from('customers')
+        .select('id, full_name, email, phone')
+        .eq(column, identifier)
+        .single()
+
+      if (error || !customer) {
+        toast.error('Customer Not Found', { 
+          description: 'No account found with this ' + (loginMethod === 'phone' ? 'mobile number' : 'CNIC') + '. Please visit the garage to register.' 
         })
-        if (authError) throw authError
+        setLoading(false)
+        return
+      }
 
-        if (authData.user) {
-          await supabase.from('users').insert([{
-            id: authData.user.id,
-            full_name: form.name,
-            phone: form.phone,
-            role: 'customer'
-          }])
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: customer.email || `customer_${customer.id}@garage.local`,
+        password: customer.phone
+      })
 
-          await supabase.from('customers').insert([{
-            id: authData.user.id,
-            full_name: form.name,
-            phone: form.phone,
-            email: form.email
-          }])
-        }
-
-        toast.success('Account Created!', { description: 'Welcome to GMS Pro!' })
-        router.push('/customer/dashboard')
-      } else {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: form.email,
-          password: form.password,
-        })
-        if (authError) throw authError
-
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', authData.user?.id)
-          .single()
-
-        if (profile?.role === 'customer') {
-          toast.success('Welcome Back!')
-          router.push('/customer/dashboard')
-        } else {
-          toast.error('Wrong Portal', { description: 'Please use the Staff Login.' })
-          await supabase.auth.signOut()
+      if (signInError) {
+        const { data: authData } = await supabase.auth.signInAnonymously()
+        if (!authData) {
+          throw new Error('Failed to create session')
         }
       }
+
+      localStorage.setItem('customer_id', customer.id)
+      localStorage.setItem('customer_name', customer.full_name)
+      localStorage.setItem('customer_phone', customer.phone)
+
+      toast.success('Welcome!', { description: `Hello ${customer.full_name}` })
+      router.push('/customer/dashboard')
+      
     } catch (error: any) {
-      toast.error(isSignup ? 'Signup Failed' : 'Login Failed', { description: error.message })
+      console.error('Login error:', error)
+      toast.error('Login Failed', { description: error.message })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-slate-900 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col justify-center px-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-lg mb-6">
-            <Wrench className="h-10 w-10 text-white" />
-          </div>
-          <h1 className="text-5xl font-bold text-white mb-4">GMS Pro</h1>
-          <p className="text-2xl text-blue-100 font-light mb-8">Customer Portal</p>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-blue-100">
-              <Car className="h-5 w-5" />
-              <span>Book appointments online</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100">
-              <ArrowRight className="h-5 w-5" />
-              <span>Track your vehicle in real-time</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100">
-              <Mail className="h-5 w-5" />
-              <span>View invoices and give feedback</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 p-4">
+      {/* Back Button */}
+      <Link 
+        href="/"
+        className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-blue-50 rounded-lg shadow-sm border border-slate-200 transition-all"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Home
+      </Link>
 
-      {/* Right Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4">
-              <Wrench className="h-8 w-8 text-white" />
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <Car className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">GMS Pro</h1>
           </div>
+          <CardTitle className="text-2xl">GMS Pro - Customer Portal</CardTitle>
+          <CardDescription>
+            Track your vehicle service status
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label>Login With</Label>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  type="button"
+                  variant={loginMethod === 'phone' ? 'default' : 'outline'}
+                  onClick={() => setLoginMethod('phone')}
+                  className="flex-1"
+                >
+                  <Phone className="h-4 w-4 mr-2" /> Mobile Number
+                </Button>
+                <Button
+                  type="button"
+                  variant={loginMethod === 'cnic' ? 'default' : 'outline'}
+                  onClick={() => setLoginMethod('cnic')}
+                  className="flex-1"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" /> CNIC
+                </Button>
+              </div>
+            </div>
 
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">
-              {isSignup ? 'Create Account' : 'Customer Login'}
-            </h2>
-            <p className="text-slate-600 mb-6">
-              {isSignup ? 'Sign up to book and track your vehicle' : 'Sign in to manage your bookings'}
+            <div>
+              <Label>
+                {loginMethod === 'phone' ? 'Mobile Number' : 'CNIC Number'}
+              </Label>
+              <Input
+                type={loginMethod === 'phone' ? 'tel' : 'text'}
+                placeholder={loginMethod === 'phone' ? '0300-1234567' : '12345-1234567-8'}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Please wait...' : 'Access Portal'}
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </form>
+
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800 text-center">
+              <strong>Note:</strong> Only registered customers can access this portal. 
+              If you're a new customer, please visit our garage to register.
             </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignup && (
-                <>
-                  <div>
-                    <Label>Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input className="pl-10 h-11" placeholder="Muhammad Ahmed" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} required />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input className="pl-10 h-11" placeholder="0300-1234567" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} required />
-                    </div>
-                  </div>
-                </>
-              )}
-              <div>
-                <Label>Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input className="pl-10 h-11" type="email" placeholder="you@email.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} required />
-                </div>
-              </div>
-              <div>
-                <Label>Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input className="pl-10 h-11" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} required />
-                </div>
-              </div>
-
-              <Button type="submit" disabled={loading} className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700">
-                {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Sign In')}
-              </Button>
-            </form>
-
-            <button 
-              onClick={() => setIsSignup(!isSignup)}
-              className="mt-4 text-sm text-blue-600 hover:underline w-full text-center"
-            >
-              {isSignup ? 'Already have an account? Sign In' : 'New customer? Create Account'}
-            </button>
-
-            <div className="mt-4 text-center">
-              <Link href="/" className="text-sm text-slate-500 hover:text-blue-600">← Back to Home</Link>
-            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
